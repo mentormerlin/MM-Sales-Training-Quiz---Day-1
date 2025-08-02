@@ -1,0 +1,337 @@
+// Main quiz logic for Mentor Merlin site
+
+/* global questions */
+
+// Utility function to shuffle an array in place
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+// Format seconds as mm:ss
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = (seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+}
+
+// Quiz variables
+let quizQuestions = [];
+let currentIndex = 0;
+let answers = [];
+let timerInterval;
+const QUIZ_DURATION_SECONDS = 1800; // 30 minutes total time
+
+document.addEventListener('DOMContentLoaded', () => {
+    const startBtn = document.getElementById('startBtn');
+    if (startBtn) {
+        startBtn.addEventListener('click', startQuiz);
+    }
+
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    if (prevBtn && nextBtn) {
+        prevBtn.addEventListener('click', () => navigateQuestion(-1));
+        nextBtn.addEventListener('click', () => navigateQuestion(1));
+    }
+});
+
+function startQuiz() {
+    const nameInput = document.getElementById('traineeName');
+    const emailInput = document.getElementById('traineeEmail');
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim().toLowerCase();
+    if (!name || !email) {
+        alert('Please enter your name and email to start the quiz.');
+        return;
+    }
+    // Check if this email has already attempted the quiz (one attempt only)
+    if (localStorage.getItem(`attempted_${email}`)) {
+        alert('You have already attempted this quiz. Only one attempt is allowed.');
+        return;
+    }
+    // Hide start screen and show quiz
+    document.getElementById('quiz-start').classList.add('hidden');
+    document.getElementById('quiz-content').classList.remove('hidden');
+    // Prepare questions: shuffle order and options
+    quizQuestions = questions.map((q) => {
+        // Make a copy of the question object to avoid mutating original
+        const qCopy = JSON.parse(JSON.stringify(q));
+        if (qCopy.type === 'mcq') {
+            // Shuffle options and track correct index
+            const optionIndices = qCopy.options.map((_, idx) => idx);
+            const shuffledIndices = shuffleArray(optionIndices);
+            const shuffledOptions = shuffledIndices.map((i) => qCopy.options[i]);
+            const newCorrectIndex = shuffledIndices.indexOf(qCopy.correctIndex);
+            qCopy.options = shuffledOptions;
+            qCopy.correctIndex = newCorrectIndex;
+        }
+        return qCopy;
+    });
+    quizQuestions = shuffleArray(quizQuestions);
+    answers = new Array(quizQuestions.length).fill(null);
+    currentIndex = 0;
+    // Start timer
+    startTimer(QUIZ_DURATION_SECONDS);
+    // Display first question
+    displayQuestion();
+    updateProgressBar();
+    // Save user info in session storage (to include in result submission)
+    sessionStorage.setItem('quiz_userName', name);
+    sessionStorage.setItem('quiz_userEmail', email);
+}
+
+function startTimer(duration) {
+    let timeLeft = duration;
+    const timerEl = document.getElementById('timer');
+    timerEl.textContent = formatTime(timeLeft);
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = formatTime(timeLeft);
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            submitQuiz();
+        }
+    }, 1000);
+}
+
+function displayQuestion() {
+    const questionArea = document.getElementById('question-area');
+    const question = quizQuestions[currentIndex];
+    // Build HTML for the question
+    let html = `<h3>Question ${currentIndex + 1} of ${quizQuestions.length}</h3>`;
+    html += `<p class="question-text">${question.question}</p>`;
+    if (question.type === 'mcq') {
+        html += '<div class="options">';
+        question.options.forEach((opt, idx) => {
+            // Determine if this option should be checked
+            const checked = answers[currentIndex] === idx ? 'checked' : '';
+            html += `<label class="option-label"><input type="radio" name="option" value="${idx}" ${checked}/> ${opt}</label>`;
+        });
+        html += '</div>';
+    }
+    // Additional types (true/false, fill-in-the-blank, image) can be added here
+    questionArea.innerHTML = html;
+    // Update navigation button visibility
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    prevBtn.classList.toggle('hidden', currentIndex === 0);
+    if (currentIndex === quizQuestions.length - 1) {
+        nextBtn.textContent = 'Submit';
+    } else {
+        nextBtn.textContent = 'Next';
+    }
+    // Attach change listener to update answer
+    document.querySelectorAll('input[name="option"]').forEach((input) => {
+        input.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value, 10);
+            answers[currentIndex] = value;
+        });
+    });
+}
+
+function navigateQuestion(step) {
+    // Before moving forward, ensure current question is answered
+    if (step === 1 && answers[currentIndex] === null) {
+        alert('Please select an answer before proceeding.');
+        return;
+    }
+    currentIndex += step;
+    if (currentIndex < 0) currentIndex = 0;
+    if (currentIndex >= quizQuestions.length) {
+        // Submit quiz
+        submitQuiz();
+    } else {
+        displayQuestion();
+        updateProgressBar();
+    }
+}
+
+function updateProgressBar() {
+    const progressBar = document.getElementById('progressBar');
+    const progress = ((currentIndex) / quizQuestions.length) * 100;
+    progressBar.style.width = `${progress}%`;
+}
+
+function submitQuiz() {
+    // Stop timer
+    clearInterval(timerInterval);
+    // Hide quiz content
+    document.getElementById('quiz-content').classList.add('hidden');
+    // Evaluate answers
+    let score = 0;
+    const detailed = [];
+    quizQuestions.forEach((question, idx) => {
+        const userAnswer = answers[idx];
+        const correct = userAnswer === question.correctIndex;
+        if (correct) score++;
+        detailed.push({
+            id: question.id,
+            question: question.question,
+            userAnswer: userAnswer,
+            correctAnswerIndex: question.correctIndex,
+            options: question.options,
+            explanation: question.explanation,
+            correct: correct
+        });
+    });
+    const percentage = (score / quizQuestions.length) * 100;
+    const passed = percentage >= 60;
+    // Display result
+    const resultEl = document.getElementById('quiz-result');
+    let resultHtml = `<h2>Quiz Results</h2>`;
+    resultHtml += `<p>Your Score: ${score} out of ${quizQuestions.length}</p>`;
+    resultHtml += `<p>Percentage: ${percentage.toFixed(2)}%</p>`;
+    resultHtml += `<p>Status: <span class="${passed ? 'pass' : 'fail'}">${passed ? 'Pass' : 'Fail'}</span></p>`;
+    resultHtml += `<h3>Review</h3>`;
+    detailed.forEach((item, idx) => {
+        resultHtml += `<div class="result-item ${item.correct ? 'correct' : 'incorrect'}">`;
+        resultHtml += `<p><strong>Q${idx + 1}:</strong> ${item.question}</p>`;
+        resultHtml += `<p>Your answer: <strong>${item.options[item.userAnswer] ?? 'No answer'}</strong></p>`;
+        resultHtml += `<p>Correct answer: <strong>${item.options[item.correctAnswerIndex]}</strong></p>`;
+        resultHtml += `<p class="explanation">${item.explanation}</p>`;
+        resultHtml += `</div>`;
+    });
+    resultEl.innerHTML = resultHtml;
+    resultEl.classList.remove('hidden');
+    // Save result to localStorage
+    const name = sessionStorage.getItem('quiz_userName');
+    const email = sessionStorage.getItem('quiz_userEmail');
+    const timestamp = new Date().toISOString();
+    const result = {
+        name,
+        email,
+        score,
+        percentage: percentage.toFixed(2),
+        passed,
+        timestamp,
+        answers: detailed
+    };
+    // Mark as attempted to prevent multiple attempts
+    localStorage.setItem(`attempted_${email}`, 'true');
+    // Append to results array in localStorage
+    const storedResults = JSON.parse(localStorage.getItem('quizResults') || '[]');
+    storedResults.push(result);
+    localStorage.setItem('quizResults', JSON.stringify(storedResults));
+    // Send result to Google Sheets (if script URL is provided)
+    sendResultToSheet(result);
+}
+
+function sendResultToSheet(result) {
+    // Replace this with your deployed Google Apps Script URL
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbzqcQl9x5PTYgqEEdta8tL_Be_wox02nBxQhG8VvwnMc-M5vWJ4RecYMM3Z1EQ7L0o/exec';
+    // If no script URL set, simply return
+    if (!scriptURL || scriptURL.includes('YOUR_SCRIPT_ID')) return;
+    // Compose form data or JSON depending on your Apps Script
+    const payload = {
+        name: result.name,
+        email: result.email,
+        score: result.score,
+        percentage: result.percentage,
+        passed: result.passed,
+        timestamp: result.timestamp
+    };
+    fetch(scriptURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    }).catch((error) => {
+        console.error('Error sending result to sheet:', error);
+    });
+}
+
+/* Admin page logic with password protection */
+// Password for admin login (client‑side only – replace with secure auth on server when available)
+const ADMIN_PASSWORD = 'mentor@123';
+
+document.addEventListener('DOMContentLoaded', () => {
+    const leaderboardEl = document.getElementById('leaderboardTable');
+    if (!leaderboardEl) return;
+    const loginModal = document.getElementById('adminLoginModal');
+    const loginBtn = document.getElementById('adminLoginBtn');
+    const passwordInput = document.getElementById('adminPasswordInput');
+    const errorMsg = document.getElementById('loginError');
+    // If already logged in, load leaderboard immediately
+    if (localStorage.getItem('adminLoggedIn') === 'true') {
+        if (loginModal) loginModal.classList.add('hidden');
+        loadLeaderboard();
+    } else {
+        // Show modal
+        if (loginModal) loginModal.classList.remove('hidden');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => {
+                const entered = passwordInput.value;
+                if (entered === ADMIN_PASSWORD) {
+                    // Set flag and hide modal
+                    localStorage.setItem('adminLoggedIn', 'true');
+                    loginModal.classList.add('hidden');
+                    errorMsg.classList.add('hidden');
+                    loadLeaderboard();
+                } else {
+                    // Show error
+                    errorMsg.classList.remove('hidden');
+                }
+            });
+        }
+    }
+});
+
+function loadLeaderboard() {
+    // Try fetching results from remote sheet via Google Apps Script
+    fetchLeaderboardData()
+        .then((data) => {
+            // Sort data by timestamp descending
+            data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            populateLeaderboardTable(data);
+        })
+        .catch(() => {
+            // Fallback to local results
+            const local = JSON.parse(localStorage.getItem('quizResults') || '[]');
+            local.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            populateLeaderboardTable(local);
+        });
+}
+
+function fetchLeaderboardData() {
+    return new Promise((resolve, reject) => {
+        // Replace with your Apps Script endpoint for reading data from Google Sheets
+        const readURL = 'https://script.google.com/macros/s/AKfycbzqcQl9x5PTYgqEEdta8tL_Be_wox02nBxQhG8VvwnMc-M5vWJ4RecYMM3Z1EQ7L0o/exec?action=get';
+        if (!readURL || readURL.includes('YOUR_SCRIPT_ID')) {
+            reject();
+            return;
+        }
+        fetch(readURL)
+            .then((res) => res.json())
+            .then((data) => {
+                resolve(data);
+            })
+            .catch((err) => {
+                reject(err);
+            });
+    });
+}
+
+function populateLeaderboardTable(data) {
+    const tbody = document.querySelector('#leaderboardTable tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    data.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${item.name}</td>
+            <td>${item.email}</td>
+            <td>${item.score}</td>
+            <td>${item.percentage}%</td>
+            <td>${item.passed ? 'Pass' : 'Fail'}</td>
+            <td>${new Date(item.timestamp).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
