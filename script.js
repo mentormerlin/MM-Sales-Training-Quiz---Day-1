@@ -24,6 +24,7 @@ let timerInterval;
 const QUIZ_DURATION_SECONDS = 1800;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Quiz Start Logic
     const startBtn = document.getElementById('startBtn');
     if (startBtn) startBtn.addEventListener('click', startQuiz);
 
@@ -32,6 +33,35 @@ document.addEventListener('DOMContentLoaded', () => {
     if (prevBtn && nextBtn) {
         prevBtn.addEventListener('click', () => navigateQuestion(-1));
         nextBtn.addEventListener('click', () => navigateQuestion(1));
+    }
+
+    // Admin Login Logic
+    const leaderboardEl = document.getElementById('leaderboardTable');
+    if (!leaderboardEl) return; // If not admin page, skip this part
+
+    const loginModal = document.getElementById('adminLoginModal');
+    const loginBtn = document.getElementById('adminLoginBtn');
+    const passwordInput = document.getElementById('adminPasswordInput');
+    const errorMsg = document.getElementById('loginError');
+
+    if (localStorage.getItem('adminLoggedIn') === 'true') {
+        loginModal.classList.add('hidden');
+        loadLeaderboard();
+    } else {
+        loginModal.classList.remove('hidden');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => {
+                const entered = passwordInput.value;
+                if (entered === ADMIN_PASSWORD) {
+                    localStorage.setItem('adminLoggedIn', 'true');
+                    loginModal.classList.add('hidden');
+                    errorMsg.classList.add('hidden');
+                    loadLeaderboard();
+                } else {
+                    errorMsg.classList.remove('hidden');
+                }
+            });
+        }
     }
 });
 
