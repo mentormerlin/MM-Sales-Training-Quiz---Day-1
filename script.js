@@ -11,19 +11,17 @@ function shuffleArray(array) {
     return array;
 }
 
-// Format seconds as mm:ss
 function formatTime(seconds) {
     const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
     const secs = (seconds % 60).toString().padStart(2, '0');
     return `${mins}:${secs}`;
 }
 
-// Quiz variables
 let quizQuestions = [];
 let currentIndex = 0;
 let answers = [];
 let timerInterval;
-const QUIZ_DURATION_SECONDS = 1800; // 30 minutes
+const QUIZ_DURATION_SECONDS = 1800;
 
 document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById('startBtn');
@@ -163,13 +161,13 @@ function submitQuiz() {
     });
 
     const percentage = (score / quizQuestions.length) * 100;
-    const resultStatus = percentage >= 60 ? 'Passed' : 'Failed';
+    const status = percentage >= 60 ? 'Passed' : 'Failed';
 
     const resultEl = document.getElementById('quiz-result');
     let resultHtml = `<h2>Quiz Results</h2>`;
     resultHtml += `<p>Your Score: ${score} out of ${quizQuestions.length}</p>`;
     resultHtml += `<p>Percentage: ${percentage.toFixed(2)}%</p>`;
-    resultHtml += `<p>Status: <span class="${resultStatus === 'Passed' ? 'pass' : 'fail'}">${resultStatus}</span></p>`;
+    resultHtml += `<p>Status: <span class="${status === 'Passed' ? 'pass' : 'fail'}">${status}</span></p>`;
     resultHtml += `<h3>Review</h3>`;
     detailed.forEach((item, idx) => {
         resultHtml += `<div class="result-item ${item.correct ? 'correct' : 'incorrect'}">`;
@@ -190,7 +188,7 @@ function submitQuiz() {
         email,
         score,
         percentage: percentage.toFixed(2),
-        result: resultStatus,
+        status, // use "Status" field instead of result
         timestamp,
         answers: detailed
     };
@@ -204,8 +202,8 @@ function submitQuiz() {
 }
 
 function sendResultToSheet(result) {
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbzqcQl9x5PTYgqEEdta8tL_Be_wox02nBxQhG8VvwnMc-M5vWJ4RecYMM3Z1EQ7L0o/exec';
-    if (!scriptURL || scriptURL.includes('AKfycbzqcQl9x5PTYgqEEdta8tL_Be_wox02nBxQhG8VvwnMc-M5vWJ4RecYMM3Z1EQ7L0o')) return;
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbymDXctgi7nYqAGXBrEcuSeqd5DB7tpQHAZjz2oB3EmZeNDjCwhjonV4BWxst1VjObf/exec';
+    if (!scriptURL) return;
 
     fetch(scriptURL, {
         method: 'POST',
@@ -265,8 +263,8 @@ function loadLeaderboard() {
 
 function fetchLeaderboardData() {
     return new Promise((resolve, reject) => {
-        const readURL = 'https://script.google.com/macros/s/AKfycbzqcQl9x5PTYgqEEdta8tL_Be_wox02nBxQhG8VvwnMc-M5vWJ4RecYMM3Z1EQ7L0o/exec?action=get';
-        if (!readURL || readURL.includes('AKfycbzqcQl9x5PTYgqEEdta8tL_Be_wox02nBxQhG8VvwnMc-M5vWJ4RecYMM3Z1EQ7L0o')) {
+        const readURL = 'https://script.google.com/macros/s/AKfycbymDXctgi7nYqAGXBrEcuSeqd5DB7tpQHAZjz2oB3EmZeNDjCwhjonV4BWxst1VjObf/exec?action=get';
+        if (!readURL) {
             reject();
             return;
         }
@@ -289,7 +287,7 @@ function populateLeaderboardTable(data) {
             <td>${item.email}</td>
             <td>${item.score}</td>
             <td>${item.percentage}%</td>
-            <td>${item.result}</td>
+            <td>${item.status || item.result}</td>
             <td>${new Date(item.timestamp).toLocaleString()}</td>
         `;
         tbody.appendChild(tr);
