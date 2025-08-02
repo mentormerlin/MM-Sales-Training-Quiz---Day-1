@@ -24,47 +24,30 @@ let timerInterval;
 const QUIZ_DURATION_SECONDS = 1800;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Quiz Start Logic
-    const startBtn = document.getElementById('startBtn');
-    if (startBtn) startBtn.addEventListener('click', startQuiz);
-
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    if (prevBtn && nextBtn) {
-        prevBtn.addEventListener('click', () => navigateQuestion(-1));
-        nextBtn.addEventListener('click', () => navigateQuestion(1));
-    }
-
-    // Admin Login Logic
     const leaderboardEl = document.getElementById('leaderboardTable');
-    if (!leaderboardEl) return; // If not admin page, skip this part
+    if (!leaderboardEl) return;
 
     const loginModal = document.getElementById('adminLoginModal');
     const loginBtn = document.getElementById('adminLoginBtn');
     const passwordInput = document.getElementById('adminPasswordInput');
     const errorMsg = document.getElementById('loginError');
 
-    if (localStorage.getItem('adminLoggedIn') === 'true') {
-        loginModal.classList.add('hidden');
-        loadLeaderboard();
-    } else {
-        loginModal.classList.remove('hidden');
-        if (loginBtn) {
-            loginBtn.addEventListener('click', () => {
-                const entered = passwordInput.value;
-                if (entered === ADMIN_PASSWORD) {
-                    localStorage.setItem('adminLoggedIn', 'true');
-                    loginModal.classList.add('hidden');
-                    errorMsg.classList.add('hidden');
-                    loadLeaderboard();
-                } else {
-                    errorMsg.classList.remove('hidden');
-                }
-            });
-        }
+    // Always show login modal
+    loginModal.classList.remove('hidden');
+
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            const entered = passwordInput.value;
+            if (entered === ADMIN_PASSWORD) {
+                loginModal.classList.add('hidden');
+                errorMsg.classList.add('hidden');
+                loadLeaderboard();
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+        });
     }
 });
-
 function startQuiz() {
     const nameInput = document.getElementById('traineeName');
     const emailInput = document.getElementById('traineeEmail');
@@ -266,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loginBtn.addEventListener('click', () => {
                 const entered = passwordInput.value;
                 if (entered === ADMIN_PASSWORD) {
-                    localStorage.setItem('adminLoggedIn', 'true');
+                    //localStorage.setItem('adminLoggedIn', 'true');
                     loginModal.classList.add('hidden');
                     errorMsg.classList.add('hidden');
                     loadLeaderboard();
