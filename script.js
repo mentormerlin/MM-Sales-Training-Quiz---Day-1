@@ -38,28 +38,31 @@ document.addEventListener('DOMContentLoaded', () => {
         nextBtn.addEventListener('click', () => navigateQuestion(1));
     }
 
-    // Admin Login Logic
+    // Admin Login Protection
+    const adminContent = document.getElementById('adminContent');
     const leaderboardEl = document.getElementById('leaderboardTable');
-    if (!leaderboardEl) return;
+    if (!leaderboardEl || !adminContent) return;
 
     const loginModal = document.getElementById('adminLoginModal');
     const loginBtn = document.getElementById('adminLoginBtn');
     const passwordInput = document.getElementById('adminPasswordInput');
     const errorMsg = document.getElementById('loginError');
 
+    // Hide admin content and show login modal on load
     loginModal.classList.remove('hidden');
-    if (loginBtn) {
-        loginBtn.addEventListener('click', () => {
-            const entered = passwordInput.value;
-            if (entered === ADMIN_PASSWORD) {
-                loginModal.classList.add('hidden');
-                errorMsg.classList.add('hidden');
-                loadLeaderboard();
-            } else {
-                errorMsg.classList.remove('hidden');
-            }
-        });
-    }
+    adminContent.classList.add('hidden');
+
+    loginBtn.addEventListener('click', () => {
+        const entered = passwordInput.value;
+        if (entered === ADMIN_PASSWORD) {
+            loginModal.classList.add('hidden');
+            adminContent.classList.remove('hidden');
+            errorMsg.classList.add('hidden');
+            loadLeaderboard();
+        } else {
+            errorMsg.classList.remove('hidden');
+        }
+    });
 });
 
 function startQuiz() {
