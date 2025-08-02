@@ -394,6 +394,9 @@ table tbody tr:nth-child(even) {
         width: 100%;
     }
 }
-.option-label input[type="radio"] {
-    accent-color: #004aad; /* optional: matches brand colour if needed */
+.option-label {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* adds spacing between the radio and text */
 }
+
