@@ -399,4 +399,7 @@ table tbody tr:nth-child(even) {
     align-items: center;
     gap: 8px; /* adds spacing between the radio and text */
 }
+.option-label input[type="radio"] {
+  flex-shrink: 0;
+}
 
