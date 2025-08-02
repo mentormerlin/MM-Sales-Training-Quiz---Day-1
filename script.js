@@ -129,7 +129,7 @@ function displayQuestion() {
         html += '<div class="options">';
         question.options.forEach((opt, idx) => {
             const checked = answers[currentIndex] === idx ? 'checked' : '';
-            html += `<label class="option-label"><input type="radio" name="option" value="${idx}" ${checked}/> ${opt}</label>`;
+            html += `<label class="option-label"><input type="radio" name="option" value="${idx}" ${checked}/><span>${opt}</span></label>`;
         });
         html += '</div>';
     }
