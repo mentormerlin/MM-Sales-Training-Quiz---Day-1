@@ -248,7 +248,7 @@ function sendResultToSheet(result) {
 
 /* Admin page logic with password protection */
 // Password for admin login (client‑side only – replace with secure auth on server when available)
-const ADMIN_PASSWORD = 'mentor@123';
+const ADMIN_PASSWORD = 'MM@123';
 
 document.addEventListener('DOMContentLoaded', () => {
     const leaderboardEl = document.getElementById('leaderboardTable');
