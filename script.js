@@ -231,7 +231,7 @@ function sendResultToSheet(result) {
         email: result.email,
         score: result.score,
         percentage: result.percentage,
-        passed: result.passed,
+        result: result.passed ? 'Passed' : 'Failed',
         timestamp: result.timestamp
     };
     fetch(scriptURL, {
@@ -329,7 +329,7 @@ function populateLeaderboardTable(data) {
             <td>${item.email}</td>
             <td>${item.score}</td>
             <td>${item.percentage}%</td>
-            <td>${item.passed ? 'Pass' : 'Fail'}</td>
+            <td>${item.result || (item.passed ? 'Pass' : 'Fail')}</td>
             <td>${new Date(item.timestamp).toLocaleString()}</td>
         `;
         tbody.appendChild(tr);
